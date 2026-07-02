@@ -1,8 +1,7 @@
 {
   "include": [
-    { "id": "2026-06-24-pass", "fixtureDate": "2026-06-24", "scenario": "qualification-pass" },
-    { "id": "2026-06-25-timing-fail", "fixtureDate": "2026-06-25", "scenario": "timing-fail" },
-    { "id": "2026-06-26-timing-fail", "fixtureDate": "2026-06-26", "scenario": "timing-fail" },
-    { "id": "2026-06-27-selector-fail", "fixtureDate": "2026-06-27", "scenario": "selector-fail" }
+    { "id": "2026-07-02-pass", "fixtureDate": "2026-07-02", "scenario": "qualification-pass" },
+    { "id": "2026-07-03-network-fail", "fixtureDate": "2026-07-03", "scenario": "network-fail" },
+    { "id": "2026-07-04-state-fail", "fixtureDate": "2026-07-04", "scenario": "state-fail" }
   ]
 }
