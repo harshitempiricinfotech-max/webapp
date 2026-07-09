@@ -1,7 +1,9 @@
 {
   "include": [
-    { "id": "2026-07-02-pass", "fixtureDate": "2026-07-02", "scenario": "qualification-pass" },
-    { "id": "2026-07-03-network-fail", "fixtureDate": "2026-07-03", "scenario": "network-fail" },
-    { "id": "2026-07-04-state-fail", "fixtureDate": "2026-07-04", "scenario": "state-fail" }
+    { "id": "2026-07-09-pass", "fixtureDate": "2026-07-09", "scenario": "qualification-pass" },
+    { "id": "2026-07-10-multi-cause-fail", "fixtureDate": "2026-07-10", "scenario": "multi-cause-fail" },
+    { "id": "2026-07-11-locale-us-fail", "fixtureDate": "2026-07-11", "scenario": "locale-us-fail" },
+    { "id": "2026-07-12-locale-de-fail", "fixtureDate": "2026-07-12", "scenario": "locale-de-fail" },
+    { "id": "2026-07-13-auth-fail", "fixtureDate": "2026-07-13", "scenario": "auth-fail-only" }
   ]
 }
