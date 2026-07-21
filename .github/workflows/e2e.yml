@@ -1,10 +1,73 @@
 name: E2E Tests
 
+run-name: E2E fixture stage ${{ github.sha }}
+
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  paused:
+  plan:
+    name: Load fixture plan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - id: plan
+        name: Read stage matrix
+        run: echo "matrix=$(jq -c . .github/fixtures/run-plan.json)" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Playwright E2E - ${{ matrix.id }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate deterministic Playwright fixture
+        run: >-
+          node .github/scripts/generate-e2e-fixture.mjs
+          --scenario "${{ matrix.scenario }}"
+          --date "${{ matrix.fixtureDate }}"
+
+      - name: Upload traces and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.id }}
+          path: |
+            test-results/
+            results/
+          retention-days: 30
+
+      - name: Set workflow conclusion
+        if: always()
+        run: |
+          if [[ "$(cat results/fixture-outcome.txt)" == "failed" ]]; then
+            echo "Publishing the intended failing E2E fixture conclusion."
+            exit 1
+          fi
+
+  advance-history:
+    name: Prepare next fixture commit
+    needs: test
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Fixture upload in progress"
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Advance staged test history
+        run: bash .github/scripts/advance-fixture-history.sh
