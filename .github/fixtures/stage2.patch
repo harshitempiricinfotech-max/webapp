@@ -1,0 +1,29 @@
+diff --git a/tests/e2e/checkout.spec.ts b/tests/e2e/checkout.spec.ts
+new file mode 100644
+index 0000000..5f21a10
+--- /dev/null
++++ b/tests/e2e/checkout.spec.ts
+@@ -0,0 +1,9 @@
++import { test, expect } from "@playwright/test";
++
++test("checkout completes with tax quote", async ({ page }) => {
++  await page.goto("/checkout");
++  await page.getByRole("button", { name: "Calculate tax" }).click();
++  await page.getByRole("button", { name: "Place order" }).click();
++  await expect(page.getByRole("heading", { name: "Order confirmed" })).toBeVisible();
++});
++
+diff --git a/tests/e2e/notifications.spec.ts b/tests/e2e/notifications.spec.ts
+new file mode 100644
+index 0000000..637f3da
+--- /dev/null
++++ b/tests/e2e/notifications.spec.ts
+@@ -0,0 +1,8 @@
++import { test, expect } from "@playwright/test";
++
++test("dismissing a notification updates unread count", async ({ page }) => {
++  await page.goto("/notifications");
++  await page.getByRole("button", { name: "Dismiss" }).first().click();
++  await expect(page.getByTestId("unread-count")).toHaveText("2");
++});
++
