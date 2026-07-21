@@ -1,0 +1,8 @@
+{
+  "include": [
+    { "id": "2026-06-24-pass", "fixtureDate": "2026-06-24", "scenario": "qualification-pass" },
+    { "id": "2026-06-25-timing-fail", "fixtureDate": "2026-06-25", "scenario": "timing-fail" },
+    { "id": "2026-06-26-timing-fail", "fixtureDate": "2026-06-26", "scenario": "timing-fail" },
+    { "id": "2026-06-27-selector-fail", "fixtureDate": "2026-06-27", "scenario": "selector-fail" }
+  ]
+}
