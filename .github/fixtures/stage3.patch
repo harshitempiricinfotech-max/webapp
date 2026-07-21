@@ -1,0 +1,44 @@
+diff --git a/tests/e2e/search.spec.ts b/tests/e2e/search.spec.ts
+new file mode 100644
+index 0000000..4fdc7db
+--- /dev/null
++++ b/tests/e2e/search.spec.ts
+@@ -0,0 +1,8 @@
++import { test, expect } from "@playwright/test";
++
++test("search suggestions survive a slow API response", async ({ page }) => {
++  await page.goto("/search");
++  await page.getByRole("combobox").fill("cyan");
++  await expect(page.getByRole("listbox")).toContainText("cyan notebook");
++});
++
+diff --git a/tests/e2e/locale.spec.ts b/tests/e2e/locale.spec.ts
+new file mode 100644
+index 0000000..d18f487
+--- /dev/null
++++ b/tests/e2e/locale.spec.ts
+@@ -0,0 +1,10 @@
++import { test, expect } from "@playwright/test";
++
++for (const locale of ["en-US", "de-DE"]) {
++  test(`checkout formats currency for locale (${locale})`, async ({ page }) => {
++    await page.goto(`/checkout?locale=${locale}`);
++    const expected = locale === "en-US" ? "$1,234.50" : "1.234,50 €";
++    await expect(page.getByTestId("order-total")).toHaveText(expected);
++  });
++}
++
+diff --git a/tests/e2e/auth.spec.ts b/tests/e2e/auth.spec.ts
+new file mode 100644
+index 0000000..f585a51
+--- /dev/null
++++ b/tests/e2e/auth.spec.ts
+@@ -0,0 +1,8 @@
++import { test, expect } from "@playwright/test";
++
++test("user can sign in after session expiry", async ({ page }) => {
++  await page.goto("/sign-in?expired=1");
++  await page.getByRole("button", { name: "Sign in" }).click();
++  await expect(page).toHaveURL(/dashboard/);
++});
++
