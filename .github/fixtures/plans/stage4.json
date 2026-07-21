@@ -1,0 +1,7 @@
+{
+  "include": [
+    { "id": "2026-07-17-auth-pass", "fixtureDate": "2026-07-17", "scenario": "auth-pass-only" },
+    { "id": "2026-07-18-cart-pass", "fixtureDate": "2026-07-18", "scenario": "cart-pass-only" },
+    { "id": "2026-07-19-cart-corrupt-trace", "fixtureDate": "2026-07-19", "scenario": "cart-corrupt-trace-fail" }
+  ]
+}
