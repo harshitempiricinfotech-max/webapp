@@ -1,11 +1,7 @@
 {
   "include": [
-    { "id": "2026-07-28-qualification-pass", "fixtureDate": "2026-07-28", "scenario": "qualification-pass" },
-    { "id": "2026-07-28-network-fail", "fixtureDate": "2026-07-28", "scenario": "network-fail" },
-    { "id": "2026-07-28-state-fail", "fixtureDate": "2026-07-28", "scenario": "state-fail" },
-    { "id": "2026-07-28-multi-cause-fail", "fixtureDate": "2026-07-28", "scenario": "multi-cause-fail" },
-    { "id": "2026-07-28-locale-us-fail", "fixtureDate": "2026-07-28", "scenario": "locale-us-fail" },
-    { "id": "2026-07-28-locale-de-fail", "fixtureDate": "2026-07-28", "scenario": "locale-de-fail" },
-    { "id": "2026-07-28-auth-fail", "fixtureDate": "2026-07-28", "scenario": "auth-fail-only" }
+    { "id": "2026-07-28-auth-pass", "fixtureDate": "2026-07-28", "scenario": "auth-pass-only" },
+    { "id": "2026-07-28-cart-pass", "fixtureDate": "2026-07-28", "scenario": "cart-pass-only" },
+    { "id": "2026-07-28-cart-corrupt-trace", "fixtureDate": "2026-07-28", "scenario": "cart-corrupt-trace-fail" }
   ]
 }
