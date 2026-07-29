@@ -1,7 +1,8 @@
 {
   "include": [
-    { "id": "2026-07-17-auth-pass", "fixtureDate": "2026-07-17", "scenario": "auth-pass-only" },
-    { "id": "2026-07-18-cart-pass", "fixtureDate": "2026-07-18", "scenario": "cart-pass-only" },
-    { "id": "2026-07-19-cart-corrupt-trace", "fixtureDate": "2026-07-19", "scenario": "cart-corrupt-trace-fail" }
+    { "id": "2026-07-27-qualification-pass", "fixtureDate": "2026-07-27", "scenario": "qualification-pass" },
+    { "id": "2026-07-27-timing-fail-a", "fixtureDate": "2026-07-27", "scenario": "timing-fail" },
+    { "id": "2026-07-28-timing-fail-b", "fixtureDate": "2026-07-28", "scenario": "timing-fail" },
+    { "id": "2026-07-28-selector-fail", "fixtureDate": "2026-07-28", "scenario": "selector-fail" }
   ]
 }

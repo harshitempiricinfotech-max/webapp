@@ -27,13 +27,20 @@ jobs:
     name: Playwright E2E - ${{ matrix.id }}
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install pinned Playwright fixture runtime
+        run: npm install --no-save --no-package-lock playwright@1.61.1
+
+      - name: Install Chromium for native trace capture
+        if: ${{ contains(matrix.scenario, 'fail') && matrix.scenario != 'cart-corrupt-trace-fail' }}
+        run: npx playwright install --with-deps chromium
 
       - name: Generate deterministic Playwright fixture
         run: >-

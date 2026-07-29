@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import fs from "node:fs";
+import http from "node:http";
 import path from "node:path";
+import { chromium } from "playwright";
 
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((pairs, value, index, all) => {
@@ -226,37 +226,128 @@ function slug(test) {
   return `${test.file.replaceAll("/", "-").replaceAll(".", "-")}-${test.key}`;
 }
 
-function buildTrace(test) {
+async function buildTrace(test) {
   const d = details[test.key];
   const dir = path.join("test-results", slug(test));
-  const src = path.join(dir, "trace-source");
-  fs.mkdirSync(path.join(src, "resources"), { recursive: true });
+  fs.mkdirSync(dir, { recursive: true });
+  const tracePath = path.join(dir, "trace.zip");
+  const method = ["checkout", "auth", "cart"].includes(test.key) ? "POST" : "GET";
   const responseBody = JSON.stringify({ fixture: test.key, status: d.request.status, retryable: d.request.status >= 429 });
-  const responseSha = createHash("sha1").update(responseBody).digest("hex");
-  fs.writeFileSync(path.join(src, "resources", responseSha), responseBody);
-  const events = [
-    { version: 8, type: "context-options", origin: "library", browserName: "chromium", wallTime: baseWallTime, options: { viewport: { width: 1280, height: 720 }, locale: "en-US", baseURL: "http://127.0.0.1:4173" } },
-    { type: "before", callId: "call@1", startTime: 100.25, apiName: d.action, class: "Frame", method: "expect", params: { timeout: 5000 }, wallTime: baseWallTime + 100 },
-    { type: "frame-snapshot", snapshot: { callId: "call@1", snapshotName: "before@call@1", pageId: "page@fixture", frameId: "frame@fixture", frameUrl: "http://127.0.0.1:4173/fixture", doctype: "html", html: ["HTML", {}, ["BODY", {}, d.before]], viewport: { width: 1280, height: 720 }, timestamp: 102.5, wallTime: baseWallTime + 102 } },
-    ...d.console.map((text, index) => ({ type: "console", messageType: text.includes("error") ? "error" : text.includes("warn") ? "warning" : "log", text, args: [], location: { url: "http://127.0.0.1:4173/assets/app.js", lineNumber: 42 + index, columnNumber: 11 }, time: 200 + index * 50, pageId: "page@fixture" })),
-    { type: "frame-snapshot", snapshot: { callId: "call@1", snapshotName: "after@call@1", pageId: "page@fixture", frameId: "frame@fixture", frameUrl: "http://127.0.0.1:4173/fixture", doctype: "html", html: ["HTML", {}, ["BODY", {}, d.after]], viewport: { width: 1280, height: 720 }, timestamp: 5200.75, wallTime: baseWallTime + 5200 } },
-    { type: "after", callId: "call@1", endTime: 5301.4, error: { name: "Error", message: d.error, stack: `Error: ${d.error}\\n    at ${test.file}:${test.line}:5` } },
-    { type: "error", message: d.error, stack: `Error: ${d.error}\\n    at ${test.file}:${test.line}:5` },
-  ];
-  const network = [
-    { type: "resource-snapshot", snapshot: { pageref: "page@fixture", startedDateTime: new Date(baseWallTime + 150).toISOString(), time: d.request.delay, request: { method: test.key === "checkout" || test.key === "auth" || test.key === "cart" ? "POST" : "GET", url: `http://127.0.0.1:4173${d.request.url}`, httpVersion: "HTTP/1.1", cookies: [], headers: [{ name: "accept", value: "application/json" }], queryString: [], headersSize: -1, bodySize: 0 }, response: { status: d.request.status, statusText: d.request.status >= 500 ? "Service Unavailable" : d.request.status === 429 ? "Too Many Requests" : "OK", httpVersion: "HTTP/1.1", cookies: [], headers: [{ name: "content-type", value: "application/json" }, { name: "x-fixture-date", value: fixtureDate }], content: { size: responseBody.length, mimeType: "application/json", _sha1: responseSha }, redirectURL: "", headersSize: -1, bodySize: responseBody.length }, cache: {}, timings: { dns: -1, connect: -1, ssl: -1, send: 1, wait: d.request.delay - 2, receive: 1 }, _monotonicTime: 150.5 } },
-  ];
-  fs.writeFileSync(path.join(src, "trace.trace"), `${events.map((e) => JSON.stringify(e)).join("\n")}\n`);
-  fs.writeFileSync(path.join(src, "trace.network"), `${network.map((e) => JSON.stringify(e)).join("\n")}\n`);
-  fs.writeFileSync(path.join(src, "dom-snapshot.html"), `<!doctype html><html><body><h1>Before</h1>${d.before}<h1>After</h1>${d.after}</body></html>`);
-  fs.writeFileSync(path.join(src, "console.log"), `${d.console.join("\n")}\n`);
-  fs.writeFileSync(path.join(src, "requests.log"), `${new Date(baseWallTime + 150).toISOString()} ${network[0].snapshot.request.method} ${network[0].snapshot.request.url}\n`);
-  fs.writeFileSync(path.join(src, "responses.log"), `${new Date(baseWallTime + 150 + d.request.delay).toISOString()} ${d.request.status} ${network[0].snapshot.request.url} (${d.request.delay}ms)\n`);
-  fs.writeFileSync(path.join(src, "action-timing.json"), JSON.stringify({ action: d.action, startedMs: 100.25, endedMs: 5301.4, timeoutMs: 5000, requestDelayMs: d.request.delay }, null, 2));
-  fs.writeFileSync(path.join(src, "failure-evidence.txt"), `${d.error}\nRoot-cause signal: ${test.rootCause}\nCommit: ${commitSha}\n`);
-  execFileSync("zip", ["-q", "-r", "../trace.zip", "."], { cwd: src });
-  fs.rmSync(src, { recursive: true, force: true });
-  return path.join(dir, "trace.zip");
+  const jsonInScript = (value) => JSON.stringify(value).replaceAll("<", "\\u003c");
+  const pageHtml = `<!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>${test.title}</title></head><body><div id="fixture-root">${d.before}</div><script>
+    window.fixtureSettled = false;
+    document.addEventListener("submit", (event) => event.preventDefault());
+    setTimeout(async () => {
+      try {
+        const response = await fetch(${jsonInScript(d.request.url)}, { method: ${jsonInScript(method)}, headers: { accept: "application/json" } });
+        window.fixtureResponse = { status: response.status, body: await response.text() };
+        document.getElementById("fixture-root").innerHTML = ${jsonInScript(d.after)};
+      } catch (error) { console.error("fixture request failed", String(error)); }
+      finally { window.fixtureSettled = true; }
+    }, 250);
+  </script></body></html>`;
+  const server = http.createServer((request, response) => {
+    if (request.url === "/fixture") {
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8", connection: "close" });
+      response.end(pageHtml);
+      return;
+    }
+    if (request.url === d.request.url) {
+      request.resume();
+      setTimeout(() => {
+        response.writeHead(d.request.status, { "content-type": "application/json", "x-fixture-date": fixtureDate, connection: "close" });
+        response.end(responseBody);
+      }, d.request.delay);
+      return;
+    }
+    response.writeHead(404, { connection: "close" });
+    response.end("Not found");
+  });
+  await new Promise((resolve, reject) => server.listen(0, "127.0.0.1", resolve).once("error", reject));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  let browser;
+  let context;
+  let actionError = null;
+  const actionStarted = Date.now();
+  try {
+    browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_FIXTURE_CHANNEL ? { channel: process.env.PLAYWRIGHT_FIXTURE_CHANNEL } : {}) });
+    context = await browser.newContext({ viewport: { width: 1280, height: 720 }, locale: "en-US", baseURL: origin });
+    if (["notifications", "locale-de"].includes(test.key)) {
+      await context.addInitScript((key) => {
+        if (key === "notifications") localStorage.setItem("notification.dismissedIds", "[n-17]");
+        if (key === "locale-de") localStorage.setItem("locale", "en-US");
+      }, test.key);
+    }
+    await context.tracing.start({ title: test.title, screenshots: true, snapshots: true, sources: true });
+    const page = await context.newPage();
+    const responsePromise = page.waitForResponse((response) => response.url() === `${origin}${d.request.url}`, { timeout: 15000 }).catch((error) => error);
+    await page.goto(`${origin}/fixture`);
+    for (const message of d.console) {
+      await page.evaluate((text) => {
+        if (text.includes("[error]")) console.error(text);
+        else if (text.includes("[warn]")) console.warn(text);
+        else console.log(text);
+      }, message);
+    }
+    try {
+      switch (test.key) {
+        case "dashboard":
+          await page.getByTestId("analytics-card").first().waitFor({ state: "visible", timeout: 5000 });
+          break;
+        case "profile":
+          await page.locator(".settings-panel .save-button, .save-button").click({ timeout: 1000 });
+          break;
+        case "checkout":
+          await page.getByRole("button", { name: "Place order" }).click({ timeout: 1000 });
+          await page.getByTestId("order-confirmation").waitFor({ state: "visible", timeout: 1500 });
+          break;
+        case "notifications":
+          await page.getByRole("button", { name: "Dismiss" }).click({ timeout: 1000 });
+          await responsePromise;
+          await page.waitForFunction(() => document.querySelector("[data-testid=unread-count]")?.textContent === "2", null, { timeout: 800 });
+          break;
+        case "search":
+          await page.getByRole("listbox").waitFor({ state: "visible", timeout: 5000 });
+          break;
+        case "locale-us":
+          await page.getByText("$1,234.50", { exact: true }).click({ timeout: 1000 });
+          break;
+        case "locale-de":
+          await responsePromise;
+          await page.waitForFunction(() => document.querySelector("[data-testid=order-total]")?.textContent === "1.234,50 €", null, { timeout: 800 });
+          break;
+        case "auth":
+          await page.getByRole("button", { name: "Sign in" }).click({ timeout: 1000 });
+          await page.waitForURL("**/home", { timeout: 1500 });
+          break;
+      }
+    } catch (error) {
+      actionError = error;
+    }
+    const apiResponse = await responsePromise;
+    if (apiResponse instanceof Error) throw apiResponse;
+    await page.waitForFunction(() => window.fixtureSettled === true, null, { timeout: 15000 });
+    await page.locator("#fixture-root").screenshot();
+    await page.evaluate((message) => console.error(`[fixture failure] ${message}`), d.error);
+    try {
+      await page.evaluate((message) => { throw new Error(message); }, d.error);
+    } catch (error) {
+      actionError ??= error;
+    }
+    await context.tracing.stop({ path: tracePath });
+  } finally {
+    if (context) await context.close();
+    if (browser) await browser.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+  const elapsedMs = Date.now() - actionStarted;
+  fs.writeFileSync(path.join(dir, "dom-snapshot.html"), `<!doctype html><html><body><h1>Before</h1>${d.before}<h1>After</h1>${d.after}</body></html>`);
+  fs.writeFileSync(path.join(dir, "console.log"), `${d.console.join("\n")}\n[fixture failure] ${d.error}\n`);
+  fs.writeFileSync(path.join(dir, "requests.log"), `${new Date(baseWallTime + 250).toISOString()} ${method} ${origin}${d.request.url}\n`);
+  fs.writeFileSync(path.join(dir, "responses.log"), `${new Date(baseWallTime + 250 + d.request.delay).toISOString()} ${d.request.status} ${origin}${d.request.url} (${d.request.delay}ms)\n`);
+  fs.writeFileSync(path.join(dir, "action-timing.json"), JSON.stringify({ action: d.action, elapsedMs, timeoutMs: 5000, requestDelayMs: d.request.delay }, null, 2));
+  fs.writeFileSync(path.join(dir, "failure-evidence.txt"), `${d.error}\nObserved action error: ${actionError?.message || "none"}\nRoot-cause signal: ${test.rootCause}\nCommit: ${commitSha}\n`);
+  return tracePath;
 }
 
 const specsByFile = new Map();
@@ -272,7 +363,7 @@ for (const test of selected) {
     tracePath = path.join(testDir, "trace.zip");
     fs.writeFileSync(tracePath, "PK\\u0003\\u0004 truncated fixture: trace capture interrupted");
   } else if (failed) {
-    tracePath = buildTrace(test);
+    tracePath = await buildTrace(test);
   }
   const result = {
     workerIndex: 0,
