@@ -1,8 +1,11 @@
 {
   "include": [
-    { "id": "2026-07-27-qualification-pass", "fixtureDate": "2026-07-27", "scenario": "qualification-pass" },
-    { "id": "2026-07-27-timing-fail-a", "fixtureDate": "2026-07-27", "scenario": "timing-fail" },
-    { "id": "2026-07-28-timing-fail-b", "fixtureDate": "2026-07-28", "scenario": "timing-fail" },
-    { "id": "2026-07-28-selector-fail", "fixtureDate": "2026-07-28", "scenario": "selector-fail" }
+    { "id": "2026-07-28-qualification-pass", "fixtureDate": "2026-07-28", "scenario": "qualification-pass" },
+    { "id": "2026-07-28-network-fail", "fixtureDate": "2026-07-28", "scenario": "network-fail" },
+    { "id": "2026-07-28-state-fail", "fixtureDate": "2026-07-28", "scenario": "state-fail" },
+    { "id": "2026-07-28-multi-cause-fail", "fixtureDate": "2026-07-28", "scenario": "multi-cause-fail" },
+    { "id": "2026-07-28-locale-us-fail", "fixtureDate": "2026-07-28", "scenario": "locale-us-fail" },
+    { "id": "2026-07-28-locale-de-fail", "fixtureDate": "2026-07-28", "scenario": "locale-de-fail" },
+    { "id": "2026-07-28-auth-fail", "fixtureDate": "2026-07-28", "scenario": "auth-fail-only" }
   ]
 }
